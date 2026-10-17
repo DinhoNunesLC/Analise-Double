@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análise Double | Poisson</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#090b12;color:#f0f2f8}*{box-sizing:border-box}body{margin:0}main{max-width:1120px;margin:auto;padding:30px 18px 80px}header{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:24px}h1{font-size:clamp(26px,4vw,42px);letter-spacing:-1.5px;margin:4px 0}h2{font-size:18px;margin:0 0 20px}p{line-height:1.6;color:#aab1c1}.eyebrow{color:#7d8bff;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase}.status{border:1px solid #303545;border-radius:25px;padding:10px 14px;background:#151923;font-size:13px}.status:before{content:"";display:inline-block;background:#f59e0b;width:9px;height:9px;border-radius:50%;margin-right:8px}.status.online:before{background:#30dc9a}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.panel{background:linear-gradient(145deg,#171b28,#10131d);border:1px solid #292e3f;border-radius:20px;padding:23px;margin-bottom:17px}.hero{background:radial-gradient(circle at 90% 0%,#29214d,#151923 48%,#10131d);padding:30px}.hero strong{font-size:36px;display:block;letter-spacing:-1px}.hero small{color:#adb3c2}.label{font-size:12px;color:#99a3b7;text-transform:uppercase;letter-spacing:1px}.card{border:1px solid #34394b;background:#141827;border-radius:18px;padding:20px}.card.best{border-color:#8e88ff;box-shadow:0 0 0 1px #7771cf55}.card b{font-size:34px;display:block;margin:10px 0}.card .color{font-size:17px;font-weight:700}.bar{background:#2a2e3b;height:9px;border-radius:100px;overflow:hidden;margin-top:15px}.bar div{height:100%;border-radius:100px;transition:width .5s}.black{background:#79839c}.red{background:#f04460}.white{background:#ecedf0}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.metric{background:#0e111b;padding:14px 16px;border-radius:12px}.metric b{font-size:20px;display:block;margin-top:5px}.history{display:flex;flex-wrap:wrap;gap:8px}.ball{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;border:2px solid #60687b}.ball.P{background:#292d3b}.ball.V{background:#de344c;border-color:#f75a73}.ball.B{background:#edf0f5;color:#141720;border-color:#fff}.muted{color:#a6afc2;font-size:13px}.notice{border-left:3px solid #8e88ff;padding:3px 16px}.error{color:#ff8391;overflow-wrap:anywhere}.foot{font-size:12px;margin-top:16px}@media(max-width:700px){.grid,.metrics{grid-template-columns:1fr}.hero strong{font-size:29px}main{padding:18px 12px 55px}.panel{padding:18px}} 
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="eyebrow">CodeBridge APIs · Blaze Double</div><h1>Análise de Poisson</h1><div class="muted">Monitoramento estatístico em tempo real</div></div><div id="status" class="status">Conectando...</div></header>
+<section class="panel hero"><span class="label">Maior probabilidade estimada no histórico</span><strong id="winner">Aguardando dados</strong><p id="summary">O sistema inicia pela probabilidade teórica e se atualiza conforme recebe resultados.</p><div class="muted" id="updated"></div></section>
+<section class="grid" id="cards"></section>
+<section class="panel"><h2>Amostra e desempenho</h2><div class="metrics"><div class="metric"><span class="label">Resultados armazenados</span><b id="total">—</b></div><div class="metric"><span class="label">Janela analisada</span><b id="window">—</b></div><div class="metric"><span class="label">Acertos retrospectivos</span><b id="accuracy">—</b></div></div><p class="foot" id="backtest"></p></section>
+<section class="panel"><h2>Últimos resultados <span class="muted">(mais recente primeiro)</span></h2><div class="history" id="history"><span class="muted">Aguardando...</span></div></section>
+<section class="panel"><h2>Sobre o cálculo</h2><div class="notice"><p>O modelo trata as cores como processos de contagem concorrentes de Poisson, com taxas λ estimadas pelas frequências históricas suavizadas. A probabilidade de cada cor ser o próximo evento é λ da cor dividido pela soma de todas as taxas.</p><p>A suavização usa as probabilidades teóricas Preto 46,67%, Vermelho 46,67% e Branco 6,67%. <strong>O resultado real de uma roleta independente não fica mais provável porque uma cor está atrasada.</strong> Diferenças observadas são variações da amostra, não evidências de previsão.</p></div><div id="error" class="error"></div></section>
+</main>
+<script>
+const names={P:"⚫ Preto",V:"🔴 Vermelho",B:"⚪ Branco"}
+const colors={P:"black",V:"red",B:"white"}
+const pct=n=>(n*100).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"%"
+async function refresh(){
+try{
+const response=await fetch("/api/analysis",{cache:"no-store"})
+if(!response.ok)throw Error("Falha HTTP "+response.status)
+const d=await response.json()
+const status=document.getElementById("status")
+status.textContent=d.status==="conectado"?"Conectado à CodeBridge":d.status==="sem_token"?"Configure APISCB_TOKEN":d.status
+status.className="status"+(d.status==="conectado"?" online":"")
+document.getElementById("winner").textContent=d.n===0?"Amostra ainda não recebida":d.mostLikely?names[d.mostLikely]: "Empate estatístico"
+document.getElementById("summary").textContent=d.n===0?"Valores teóricos exibidos abaixo, aguardando resultados reais.":d.mostLikely?"Maior taxa observada: "+names[d.mostLikely]+". Este destaque não representa vantagem comprovada sobre a roleta.":"As maiores estimativas estão empatadas. Não há uma única opção em destaque."
+document.getElementById("updated").textContent="Atualização: "+new Date(d.updatedAt).toLocaleTimeString("pt-BR")
+document.getElementById("cards").innerHTML=["P","V","B"].map(k=>'<div class="card '+(d.n&&d.mostLikely===k?"best":"")+'"><div class="color">'+names[k]+'</div><b>'+pct(d.probability[k])+'</b><div class="muted">Teórica: '+pct(d.baseline[k])+' · Ocorrências: '+d.counts[k]+'</div><div class="bar"><div class="'+colors[k]+'" style="width:'+Math.max(0,Math.min(100,d.probability[k]*100))+'%"></div></div></div>').join("")
+document.getElementById("total").textContent=d.total.toLocaleString("pt-BR")
+document.getElementById("window").textContent=d.n+" / "+d.window
+document.getElementById("accuracy").textContent=d.backtest.accuracy===null?"Insuficiente":pct(d.backtest.accuracy)
+document.getElementById("backtest").textContent=d.backtest.tested?d.backtest.hits+" acertos em "+d.backtest.tested+" avaliações sequenciais retrospectivas, sem utilizar o resultado avaliado no cálculo. Não é uma validação prospectiva.":"São necessários mais resultados para uma avaliação retrospectiva."
+document.getElementById("history").innerHTML=d.latest.length?d.latest.map(r=>'<span title="'+r.hora+'" class="ball '+r.resultado+'">'+r.numero+'</span>').join(""):'<span class="muted">Nenhum resultado recebido ainda.</span>'
+document.getElementById("error").textContent=d.error?"Conexão: "+d.error:""
+}catch(e){document.getElementById("status").textContent="Erro na atualização";document.getElementById("error").textContent=e.message}
+}
+refresh()
+setInterval(refresh,5000)
+</script>
+</body>
+</html>

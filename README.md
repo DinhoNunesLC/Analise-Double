@@ -54,3 +54,8 @@ PRIOR_STRENGTH=30
 ```
 
 Não publique o token nem o arquivo `.env` no GitHub. Use armazenamento persistente para o SQLite na hospedagem.
+
+## Contato
+
+- **Suporte:** [@FaleAquiSuporteBot](https://t.me/FaleAquiSuporteBot)
+- **Desenvolvedor:** [@DinhoNunesLC](https://t.me/DinhoNunesLC)

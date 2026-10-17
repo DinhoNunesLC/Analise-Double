@@ -34,6 +34,15 @@ A metodologia mede frequências observadas; não prevê resultados independentes
 - `GET /api/analysis`
 - `GET /health`
 
+## Onde conseguir o token
+
+O token de acesso é fornecido pela **CodeBridge APIs**.
+
+- Site: https://apiscb.site
+- Documentação da API e exemplos de conexão: https://apiscb.site/documentacao
+
+Acesse a plataforma CodeBridge APIs para obter seu token de acesso e consulte a documentação para configurar a conexão com o canal `blazdouble`.
+
 ## Configuração
 
 ```env
